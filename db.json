@@ -1,0 +1,25 @@
+{
+  "todos": [
+    {
+      "id": 1703573551,
+      "timestamp": 1703573551,
+      "date": "26/12/2023",
+      "text": "do stuff3",
+      "completed": true
+    },
+    {
+      "id": 1703573557,
+      "timestamp": 1703573557,
+      "date": "26/12/2023",
+      "text": "do stuff1",
+      "completed": false
+    },
+    {
+      "id": 1703573560,
+      "timestamp": 1703573560,
+      "date": "26/12/2023",
+      "text": "do stuff15",
+      "completed": false
+    }
+  ]
+}
