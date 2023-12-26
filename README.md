@@ -7,5 +7,6 @@ Create daily checklist.
 
 - [ ] Add auto report as MD 
 - [ ] Connect 3rd parties such as Jira, Slack etc.
+- [ ] Add proper UI
 
 
