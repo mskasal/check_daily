@@ -1,5 +1,9 @@
 use chrono::{DateTime, Duration, Utc};
 use clap::{Parser, Subcommand};
+use crossterm::event::KeyCode;
+use ratatui::layout::Rect;
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::widgets::{Block, Borders, List, ListState};
 use std::path::PathBuf;
 
 mod date;
@@ -7,6 +11,15 @@ mod todos;
 
 use crate::date::{Analyzer, TimestampAnalyzer};
 use crate::todos::{Readable as _, Todo, Todos, TraidTodo as _, TraitTodos, Writable as _};
+
+use anyhow::Result;
+
+use crossterm::{
+    event::{self, Event::Key},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use ratatui::prelude::{CrosstermBackend, Frame, Terminal};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about)]
@@ -43,6 +56,7 @@ enum Commands {
         number: usize,
     },
     List,
+    UI,
 }
 
 fn main() {
@@ -99,6 +113,10 @@ fn main() {
             let _ = todos.write();
         }
 
+        Some(Commands::UI) => {
+            let _ = run_app(&todos.todos);
+        }
+
         Some(Commands::List) => {
             print_items(&todos.todos);
         }
@@ -135,4 +153,150 @@ fn print_items(items: &[Todo]) {
             println!("{item}");
         }
     }
+}
+
+struct StatefulList<'a, T> {
+    state: ListState,
+    items: &'a [T],
+}
+
+trait StatefulListTrait<'a, T> {
+    fn with_items(items: &'a [T]) -> StatefulList<'a, T>;
+
+    fn next(&mut self);
+
+    fn previous(&mut self);
+
+    fn unselect(&mut self);
+}
+
+impl<'a, T> StatefulListTrait<'a, T> for StatefulList<'a, T> {
+    fn with_items(items: &'a [T]) -> StatefulList<'a, T> {
+        StatefulList {
+            state: ListState::default(),
+            items,
+        }
+    }
+
+    fn next(&mut self) {
+        let i = match self.state.selected() {
+            Some(i) => {
+                if i >= self.items.len() - 1 {
+                    0
+                } else {
+                    i + 1
+                }
+            }
+            None => 0,
+        };
+        self.state.select(Some(i));
+    }
+
+    fn previous(&mut self) {
+        let i = match self.state.selected() {
+            Some(i) => {
+                if i == 0 {
+                    self.items.len() - 1
+                } else {
+                    i - 1
+                }
+            }
+            None => 0,
+        };
+        self.state.select(Some(i));
+    }
+
+    fn unselect(&mut self) {
+        self.state.select(None);
+    }
+}
+
+struct App<'a> {
+    items: StatefulList<'a, Todo>,
+    should_quit: bool,
+}
+
+impl<'a> App<'a> {
+    fn new(items: &'a [Todo]) -> App<'a> {
+        App {
+            items: StatefulList::with_items(items),
+            should_quit: false,
+        }
+    }
+}
+
+fn startup() -> Result<()> {
+    enable_raw_mode()?;
+    execute!(std::io::stderr(), EnterAlternateScreen)?;
+    Ok(())
+}
+
+fn shutdown() -> Result<()> {
+    execute!(std::io::stderr(), LeaveAlternateScreen)?;
+    disable_raw_mode()?;
+    Ok(())
+}
+
+fn ui(app: &App, f: &mut Frame) {
+    let area = Rect::new(0, 0, 106, 16);
+    let items = app.items.items.iter().map(|i| i.text.clone());
+    let list = List::new(items)
+        .block(Block::default().title("Todos").borders(Borders::ALL))
+        .highlight_style(
+            Style::default()
+                .bg(Color::LightBlue)
+                .fg(Color::Black)
+                .add_modifier(Modifier::BOLD),
+        )
+        .repeat_highlight_symbol(true);
+
+    f.render_stateful_widget(list, area, &mut app.items.state.clone());
+}
+
+fn update(app: &mut App) -> Result<()> {
+    if event::poll(std::time::Duration::from_millis(250))? {
+        if let Key(key) = event::read()? {
+            if key.kind == event::KeyEventKind::Press {
+                match key.code {
+                    KeyCode::Left | KeyCode::Char('h') => app.items.unselect(),
+                    KeyCode::Down | KeyCode::Char('j') => app.items.next(),
+                    KeyCode::Up | KeyCode::Char('k') => app.items.previous(),
+                    KeyCode::Char('q') => app.should_quit = true,
+                    _ => {}
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn run_ui(items: &[Todo]) -> Result<()> {
+    // ratatui terminal
+    let mut t = Terminal::new(CrosstermBackend::new(std::io::stderr()))?;
+
+    // application state
+    let mut app = App::new(items);
+
+    loop {
+        t.draw(|f| {
+            ui(&app, f);
+        })?;
+
+        update(&mut app)?;
+
+        if app.should_quit {
+            break;
+        }
+    }
+
+    Ok(())
+}
+
+fn run_app(items: &[Todo]) -> Result<()> {
+    startup()?;
+    let result = run_ui(items);
+    shutdown()?;
+    result?;
+
+    Ok(())
 }

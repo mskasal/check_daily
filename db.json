@@ -12,13 +12,69 @@
       "timestamp": 1703573557,
       "date": "26/12/2023",
       "text": "do stuff1",
-      "completed": false
+      "completed": true
     },
     {
       "id": 1703573560,
       "timestamp": 1703573560,
       "date": "26/12/2023",
       "text": "do stuff15",
+      "completed": true
+    },
+    {
+      "id": 1704658760,
+      "timestamp": 1704658760,
+      "date": "07/01/2024",
+      "text": "do stuff15",
+      "completed": true
+    },
+    {
+      "id": 1704741785,
+      "timestamp": 1704741785,
+      "date": "08/01/2024",
+      "text": "do stuff15",
+      "completed": true
+    },
+    {
+      "id": 1704741811,
+      "timestamp": 1704741811,
+      "date": "08/01/2024",
+      "text": "do stuff15",
+      "completed": true
+    },
+    {
+      "id": 1704822827,
+      "timestamp": 1704822827,
+      "date": "09/01/2024",
+      "text": "asd",
+      "completed": true
+    },
+    {
+      "id": 1705160093,
+      "timestamp": 1705160093,
+      "date": "13/01/2024",
+      "text": "asd",
+      "completed": true
+    },
+    {
+      "id": 1705160139,
+      "timestamp": 1705160139,
+      "date": "13/01/2024",
+      "text": "asd",
+      "completed": true
+    },
+    {
+      "id": 1705244466,
+      "timestamp": 1705244466,
+      "date": "14/01/2024",
+      "text": "asd",
+      "completed": false
+    },
+    {
+      "id": 1705244471,
+      "timestamp": 1705244471,
+      "date": "14/01/2024",
+      "text": "asd",
       "completed": false
     }
   ]

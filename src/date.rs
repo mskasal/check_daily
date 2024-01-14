@@ -47,11 +47,7 @@ impl fmt::Display for TimestampAnalyzer {
                 let datetime = DateTime::from_timestamp(self.timestamp, 0).unwrap();
                 let formatted_time = datetime.format("%d/%m/%Y").to_string();
 
-                write!(
-                    f,
-                    "The timestamp is from another day. Complete date in UTC format: {}",
-                    formatted_time
-                )
+                write!(f, "{}", formatted_time)
             }
         }
     }
