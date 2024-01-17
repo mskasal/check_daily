@@ -3,14 +3,15 @@ use clap::{Parser, Subcommand};
 use crossterm::event::KeyCode;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
-use ratatui::widgets::{Block, Borders, List, ListState};
+use ratatui::widgets::{Block, Borders, List, ListItem, ListState};
 use std::path::PathBuf;
+use todos::TraidTodo;
 
 mod date;
 mod todos;
 
 use crate::date::{Analyzer, TimestampAnalyzer};
-use crate::todos::{Readable as _, Todo, Todos, TraidTodo as _, TraitTodos, Writable as _};
+use crate::todos::{Readable as _, Todo, Todos, TraitTodos, Writable as _};
 
 use anyhow::Result;
 
@@ -114,7 +115,7 @@ fn main() {
         }
 
         Some(Commands::UI) => {
-            let _ = run_app(&todos.todos);
+            let _ = run_app(&mut todos.todos);
         }
 
         Some(Commands::List) => {
@@ -157,11 +158,11 @@ fn print_items(items: &[Todo]) {
 
 struct StatefulList<'a, T> {
     state: ListState,
-    items: &'a [T],
+    items: &'a mut [T],
 }
 
 trait StatefulListTrait<'a, T> {
-    fn with_items(items: &'a [T]) -> StatefulList<'a, T>;
+    fn with_items(items: &'a mut [T]) -> StatefulList<'a, T>;
 
     fn next(&mut self);
 
@@ -171,7 +172,7 @@ trait StatefulListTrait<'a, T> {
 }
 
 impl<'a, T> StatefulListTrait<'a, T> for StatefulList<'a, T> {
-    fn with_items(items: &'a [T]) -> StatefulList<'a, T> {
+    fn with_items(items: &'a mut [T]) -> StatefulList<'a, T> {
         StatefulList {
             state: ListState::default(),
             items,
@@ -217,11 +218,15 @@ struct App<'a> {
 }
 
 impl<'a> App<'a> {
-    fn new(items: &'a [Todo]) -> App<'a> {
+    fn new(items: &'a mut [Todo]) -> App<'a> {
         App {
             items: StatefulList::with_items(items),
             should_quit: false,
         }
+    }
+
+    fn toggle(&mut self, index: usize) {
+        self.items.items[index].toggle_status(!self.items.items[index].completed);
     }
 }
 
@@ -239,7 +244,23 @@ fn shutdown() -> Result<()> {
 
 fn ui(app: &App, f: &mut Frame) {
     let area = Rect::new(0, 0, 106, 16);
-    let items = app.items.items.iter().map(|i| i.text.clone());
+    let items: Vec<ListItem<'_>> = app
+        .items
+        .items
+        .iter()
+        .enumerate()
+        .map(|(_, item)| {
+            let mut list_item = ListItem::new(format!("Item {}", item.id));
+
+            // Customize the design based on the 'highlighted' property
+            if item.completed {
+                list_item = list_item.style(Style::default().fg(Color::Yellow));
+            }
+
+            list_item
+        })
+        .collect();
+    // .map(|i| i.text.clone());
     let list = List::new(items)
         .block(Block::default().title("Todos").borders(Borders::ALL))
         .highlight_style(
@@ -261,6 +282,12 @@ fn update(app: &mut App) -> Result<()> {
                     KeyCode::Left | KeyCode::Char('h') => app.items.unselect(),
                     KeyCode::Down | KeyCode::Char('j') => app.items.next(),
                     KeyCode::Up | KeyCode::Char('k') => app.items.previous(),
+                    KeyCode::Char('t') => {
+                        if let Some(selected_index) = app.items.state.selected() {
+                            println!("{selected_index}");
+                            app.toggle(selected_index);
+                        }
+                    }
                     KeyCode::Char('q') => app.should_quit = true,
                     _ => {}
                 }
@@ -270,7 +297,7 @@ fn update(app: &mut App) -> Result<()> {
     Ok(())
 }
 
-fn run_ui(items: &[Todo]) -> Result<()> {
+fn run_ui(items: &mut [Todo]) -> Result<()> {
     // ratatui terminal
     let mut t = Terminal::new(CrosstermBackend::new(std::io::stderr()))?;
 
@@ -292,7 +319,7 @@ fn run_ui(items: &[Todo]) -> Result<()> {
     Ok(())
 }
 
-fn run_app(items: &[Todo]) -> Result<()> {
+fn run_app(items: &mut [Todo]) -> Result<()> {
     startup()?;
     let result = run_ui(items);
     shutdown()?;
